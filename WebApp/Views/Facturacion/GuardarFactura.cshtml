@@ -1,0 +1,197 @@
+﻿@model IEnumerable<WebApp.Models.Detalle>
+@{
+    Layout = null;
+}
+<html>
+<head>
+
+    <style>
+        .contenedor {
+            width: 900px !important;
+            height: 842px !important;
+            margin: auto;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif
+        }
+
+        p.title {
+            font-weight: bold;
+        }
+
+        p.title2 {
+            font-weight: bold;
+            color: #03A99F;
+            font-size: 20px;
+        }
+
+        p.text {
+            font-size: 15px;
+            font-weight: 100;
+            color: #858585;
+        }
+
+        p {
+            margin: 0px
+        }
+
+        .tbth {
+            text-align: left;
+        }
+
+        table.tbproductos {
+            border-collapse: separate;
+            border-spacing: 4px;
+        }
+
+            table.tbproductos thead tr th {
+                background-color: #03A99F;
+                padding: 10px;
+                font-size: 15px;
+                color: white;
+            }
+
+            table.tbproductos tbody tr td {
+                padding: 10px;
+            }
+
+        .item {
+            font-size: 15px;
+            font-weight: 100;
+            color: #757575;
+        }
+
+        .item-2 {
+            font-size: 15px;
+            font-weight: bold;
+            color: #757575;
+        }
+
+        .item-3 {
+            font-size: 15px;
+            font-weight: bold;
+            background-color: #03A99F;
+            color: white;
+        }
+
+        .td-item {
+            border-bottom: 2px solid #E8E8E8 !important;
+        }
+    </style>
+</head>
+<body>
+   
+    <div class="contenedor">
+        <h2 style="font-weight: bold; color: #03A99F; text-align:center" class="text-center">
+            Datos de compra
+        </h2>
+        <br />
+        <table style="width:100%">
+            <tr>
+                <td>
+                </td>
+                <td style="text-align:right">
+                    <table style="margin-right:0;margin-left:auto">
+                        <tr><td><p class="title2">NÚMERO VENTA</p></td></tr>
+                        <tr><td>@Model.First().IdFacturaNavigation.FacturaId</td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table style="width:100%">
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                <p class="title">Datos de facturación: </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><p class="text">Fecha y hora: @Model.First().IdFacturaNavigation.Fecha</p></td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="text-align:right">
+                    <table style="margin-right:0;margin-left:auto">
+                        <tr>
+                            <td><p class="title">CLIENTE</p></td>
+                        </tr>
+                        <tr>
+                            <td><p class="text">@Model.First().IdFacturaNavigation.ClienteNavigation.Nombre</p></td>
+                        </tr>
+                        <tr>
+                            <td><p class="text">@Model.First().IdFacturaNavigation.ClienteNavigation.Usuario1</p></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <br />
+
+        <table class="tbproductos" style="width:100%">
+            <thead>
+                <tr>
+                    <th class="tbth">Código</th>
+                    <th class="tbth" style="width:130px">Unidades</th>
+                    <th class="tbth" style="width:130px">Descripción</th>
+                    <th class="tbth" style="width:130px">Precio</th>
+                    <th class="tbth" style="width:130px">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model)
+                {
+                    <tr>
+                        <td class="td-item">@d.CodArticuloNavigation.Codigo</td>
+                        <td class="td-item">@d.Cantidad</td>
+                        <td class="td-item">@d.CodArticuloNavigation.Nombre</td>
+                        <td class="td-item">₡@d.CodArticuloNavigation.Precio</td>
+                        <td class="td-item">₡@d.Total</td>
+                    </tr>
+                }
+                @{
+                    decimal? subTotalNullable = Model.Sum(d => d.Total) - (Model.Where(d => d.CodArticuloNavigation.Iva == true).Sum(d => d.Total) * 0.13m);
+                    decimal? ivaNullable = Model.Where(d => d.CodArticuloNavigation.Iva == true).Sum(d => d.Total) * 0.13m;
+                    decimal? totalNullable = Model.Sum(d => d.Total);
+
+                    // Convertir a decimal, manejar valores nulos usando el operador de fusión nula (??)
+                    decimal subTotal = subTotalNullable ?? 0;
+                    decimal iva = ivaNullable ?? 0;
+                    decimal total = totalNullable ?? 0;
+                }
+                <tr>
+                    <td colspan="3" rowspan="3">
+                    </td>
+                    <td class="td-item">
+                        <p class="item-2">Sub Total</p>
+                    </td>
+                    <td class="item-3">
+                        <p>₡@subTotal</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td-item">
+                        <p class="item-2">IVA</p>
+                    </td>
+                    <td class="item-3">
+                        <p>₡@iva</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="item-3">
+                        <p>Total</p>
+                    </td>
+                    <td class="item-3">
+                        <p>₡@total</p>
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+</body>
+</html>

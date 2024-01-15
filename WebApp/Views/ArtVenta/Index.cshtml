@@ -1,0 +1,386 @@
+﻿@using System.Text.Json;
+@using WebApp.Services;
+@model IEnumerable<WebApp.Models.ArtVenta>
+@{
+    ViewData["Title"] = "Artículos";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var logged = Context.Session.GetString("usuario");
+    UserResponse? usuario = null;
+    if (logged != null)
+    { // Is logged
+        usuario = JsonSerializer.Deserialize<UserResponse>(logged);
+    }
+}
+
+
+<head>
+    <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-image: url('images/background.jpg');
+            background-size: cover; /* o 'contain' para ajustar a la pantalla de manera diferente */
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Para que la imagen de fondo no se desplace con el contenido */
+        }
+
+    </style>
+</head>
+<body >
+    <br />
+    <h3 class="mb-4 text-center" style="color:white">Artículos para venta</h3>
+
+    <!-- Formulario para ingresar nuevos artículos -->
+    <form method="post" action="@Url.Action("Create", "ArtVenta")" id="formArticulo" class="row g-3 needs-validation mx-auto bg-light p-2 rounded col-md-6" style="min-height: 300px; max-width: 400px;" novalidate>
+        <div class="form-group">
+            <label for="codigo">Código:</label>
+            <input type="text" class="form-control" id="codigo" name="Codigo" required>
+            <div class="valid-feedback">
+            </div>
+            <div class="invalid-feedback">
+                El campo de código es obligatorio.
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="nombre">Nombre:</label>
+            <input type="text" class="form-control" id="nombre" name="Nombre" required>
+            <div class="invalid-feedback">
+                El campo de nombre es obligatorio.
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="precio">Precio:</label>
+            <input type="number" class="form-control" id="precio" name="Precio" step="0.01" required>
+            <div class="invalid-feedback">
+                El campo de precio es obligatorio.
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Iva" name="Iva" value="true" >
+                <label class="form-check-label" for="Iva">Aplica IVA (13%)</label>
+            </div>
+        </div>
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger text-center">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                <strong>El artículo no pudo ser guardado. </strong> @TempData["Error"]
+            </div>
+
+            <script type="text/javascript">
+                setTimeout(function () {
+                    // Cerrando la alerta
+                    $('.alert').alert('close');
+                }, 7000);
+            </script>
+            @(TempData["Error"] = null)
+        }
+
+        <input type="hidden" id="accion" name="accion" value="" />
+        <input type="hidden" id="articuloId" name="Id" value="" />
+
+
+        <div class="form-group text-right">
+            <button type="submit" class="btn btn-danger" id="btnEliminar" hidden onclick="prepararEnvio('eliminar')">Eliminar</button>
+            <button type="submit" class="btn btn-primary" id="btnEditar" hidden onclick="prepararEnvio('editar')">Editar</button>
+            <button type="submit" class="btn btn-primary" id="btnGuardar">Guardar</button>
+        </div>
+    </form>
+
+    <hr>
+    <div class="text-right">
+    <button type="submit" id="refresh" class="btn btn-primary" style="background-color:#0B80E6"> <i class="fa-solid fa-arrows-rotate"></i> </button>
+    </div>
+    <br />
+    <!-- Tabla para mostrar el listado de artículos -->
+    <table class="table table-striped" id="scrollableTable">
+        <thead style="color:#00539B!important">
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>IVA</th>
+                <th>Total</th>
+                <th hidden>Id</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var articulo in Model)
+            {
+                <tr>
+                    <td>@articulo.Codigo</td>
+                    <td>@articulo.Nombre</td>
+                    <td>@articulo.Precio</td>
+                    @if(articulo.Iva == true){
+                        <td>@(Double.Parse(articulo.Precio.ToString()) * 0.13)</td>
+                    }
+                    else
+                    {
+                        <td>0.00</td>
+                    }
+                    <td>@articulo.Total</td>
+                    <td hidden>@articulo.Id</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr style="color:#00539B!important">
+                <th class="th-sm">
+                    Código
+                </th>
+                <th class="th-sm">
+                    Nombre
+                </th>
+                <th class="th-sm">
+                    Precio
+                </th>
+                <th class="th-sm">
+                    IVA
+                </th>
+                <th class="th-sm">
+                    Total
+                </th>
+            </tr>
+        </tfoot>
+    </table>
+    <br />
+</body>
+
+
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var table = $('#scrollableTable').DataTable({
+                "processing": true,
+                "serverSide": false,
+                "filter": true,
+                "searching": true,
+                "orderMulti": true,
+                "aLengthMenu": [[5, 10, 25, -1], [5, 10, 25, "Todos"]],
+                "iDisplayLength": 5,
+                "responsive": true,
+                "columnDefs": [
+                    {
+                        "targets": [2,3,4],
+                        "render": function (data, type, row) {
+                            return '₡' + data;
+                        }
+                    }
+                ],
+                "language": {
+                    "searchPlaceholder": "Artículo",
+                    "sProcessing": "Procesando...",
+                    "sLengthMenu": "Mostrar _MENU_ artículos",
+                    "sZeroRecords": "No se encontraron resultados",
+                    "sEmptyTable": "No se encontro ninguna 'Artículo' con los criterios de busqueda",
+                    "sInfo": "Mostrando del _START_ al _END_ de un total de _TOTAL_ artículos",
+                    "sInfoEmpty": "Mostrando del 0 al 0 de un total de 0 artículos",
+                    "sInfoFiltered": "(filtrado de un total de _MAX_ artículos)",
+                    "sInfoPostFix": "",
+                    "sSearch": "Buscar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Cargando...",
+                    "oPaginate": {
+                        "sFirst": "Primero",
+                        "sLast": "Último",
+                        "sNext": "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "select": true,
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
+                },
+                initComplete: function () {
+                    var table = this;
+
+                    table.api().columns().every(function (index) {
+                        if (index === table.api().columns().count() - 1) {
+                            return;
+                        }
+
+                        var column = this;
+                        var select = $('<select  class="browser-default custom-select form-control-sm"><option value="" selected>Filtrar</option></select>')
+                            .appendTo($(column.footer()).empty())
+                            .on('change', function () {
+                                var val = $.fn.dataTable.util.escapeRegex(
+                                    $(this).val()
+                                );
+
+                                column
+                                    .search(val ? '^' + val + '$' : '', true, false)
+                                    .draw();
+                            });
+
+                        column.data().unique().sort().each(function (d, j) {
+                            select.append('<option value="' + d + '">' + d + '</option>')
+                        });
+                    });
+                }
+            });
+        });
+        </script>
+}
+
+
+<script>
+   
+
+    $(document).ready(function () {
+        // Asignar el prefijo "ART" al campo de código al cargar la página
+        $("#codigo").val("ART");
+    });
+    band = true;
+    (function () {
+        'use strict'
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        var forms = document.querySelectorAll('.needs-validation')
+        // Loop over them and prevent submission
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        band = false
+
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Datos de artículo para venta obligatorios',
+                            text: 'Por favor, complete los campos requeridos.',
+                        })
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })();
+
+    //Evento al seleccionar elemento de la tabla
+    $(document).ready(function () {
+        // Captura el evento clic en una fila de la tabla
+        $("table tbody").on("click", "tr", function () {
+            // Obtiene los datos de la fila seleccionada
+            var codigo = $(this).find("td:eq(0)").text(); 
+            var nombre = $(this).find("td:eq(1)").text(); 
+            var precio = $(this).find("td:eq(2)").text().replace('₡', '');
+            var iva = $(this).find("td:eq(3)").text().replace('₡', '');
+            var id = $(this).find("td:eq(5)").text();
+
+            var btnHidden = document.getElementById("btnEliminar");
+            btnHidden.hidden = false;
+
+            var btnEditar = document.getElementById("btnEditar");
+            btnEditar.hidden = false;
+
+            var btnGuardar = document.getElementById("btnGuardar");
+            btnGuardar.hidden = true;
+
+            // Actualiza los campos del formulario con los datos de la fila
+            $("#articuloId").val(id);
+            $("#codigo").val(codigo);
+            $("#nombre").val(nombre);
+            $("#precio").val(precio);
+            if(iva === '0.00'){
+                $("#Iva").prop("checked", false);
+            }else{
+                $("#Iva").prop("checked", true);
+            }
+            
+
+        });
+
+
+        $("#refresh").on("click", function (e) {
+            // Verifica si el clic ocurrió fuera del formulario
+            if (!$(e.target).closest("#formulario").length) {
+                // Limpia los campos del formulario
+                $("#codigo").val("ART");
+                $("#nombre").val("");
+                $("#precio").val("");
+                $("#Iva").prop("checked", false);
+                $("#Id").val("");
+
+                var btnHidden = document.getElementById("btnEliminar");
+                btnHidden.hidden = true;
+                var btnEditar = document.getElementById("btnEditar");
+                btnEditar.hidden = true;
+                var btnGuardar = document.getElementById("btnGuardar");
+                btnGuardar.hidden = false;
+            }
+        });
+    });
+
+    //Acción dependiendo del botón
+    function prepararEnvio(accion) {
+
+        // Asigna la acción al campo oculto
+        document.getElementById("accion").value = accion;
+        var idA = document.getElementById("articuloId").value
+
+        // Cambia el atributo action del formulario según la acción
+        if (accion === "guardar") {
+            document.getElementById("formArticulo").action = "@Url.Action("Create", "ArtVenta")";
+            document.getElementById("formArticulo").submit();
+        } else if (accion === "editar") {
+            event.preventDefault()
+            event.stopPropagation()
+            Swal.fire({
+                title: "¿Está seguro que desea editar este artículo?",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                cancelButtonText: "Cancelar",
+                confirmButtonText: "Sí, editar"
+                
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("formArticulo").action = "@Url.Action("Edit", "ArtVenta")";
+                    document.getElementById("formArticulo").submit();
+                } else{
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "info",
+                        title: "Elemento no modificado",
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            });
+        } else if (accion === "eliminar") {
+            event.preventDefault()
+            event.stopPropagation()
+            Swal.fire({
+                title: "¿Está seguro que desea eliminar este artículo?",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                cancelButtonText: "Cancelar",
+                confirmButtonText: "Sí, eliminar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("formArticulo").action = "@Url.Action("Delete", "ArtVenta")" + "?id=" + idA;;
+                    document.getElementById("formArticulo").submit();
+                } else {
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "info",
+                        title: "Elemento no eliminado",
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            });
+        }
+
+        
+    }
+
+</script>
+
+<partial name="_NotificationPanel" />

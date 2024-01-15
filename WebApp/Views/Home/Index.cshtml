@@ -1,0 +1,69 @@
+﻿@using System.Text.Json;
+@using WebApp.Services;
+@{
+    ViewData["Title"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var logged = Context.Session.GetString("usuario");
+    UserResponse? usuario = null;
+    if (logged != null)
+    { // Is logged
+        usuario = JsonSerializer.Deserialize<UserResponse>(logged);
+    }
+}
+
+<head>
+    <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-image: url('images/background.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Para que la imagen de fondo no se desplace con el contenido */
+            
+        }
+
+
+        .center-content{
+            text-align: center;
+            margin-top: 200px; 
+        }
+
+        .myButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            transition: transform 0.2s;
+            display: inline-block;
+            margin: 0 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+            /* Estilo del botón al pasar el ratón */
+            .myButton:hover {
+                transform: scale(1.2); /* Aumentar el tamaño al pasar el ratón */
+            }
+
+    </style>
+</head>
+<body >
+    
+    <div class="center-content">
+        <hr />
+        <!-- Botón para artículos de venta -->
+        <a class="btn btn-primary myButton" asp-controller="ArtVenta" asp-action="Index">
+            <i class="fas fa-shopping-cart mr-2"></i> Artículos para venta
+        </a>
+        
+
+        <!-- Botón para facturacióN -->
+        <a class="btn btn-success myButton" asp-controller="Facturacion" asp-action="Index">
+            <i class="fas fa-file-invoice-dollar mr-2"></i> Facturación
+        </a>
+    </div>
+    <hr />
+
+</body>
